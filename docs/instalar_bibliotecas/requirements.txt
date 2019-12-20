@@ -1,0 +1,17 @@
+beautifulsoup4
+pymongo
+ftfy
+lxml
+requests
+selenium
+sqlalchemy
+python-dateutil
+pymysql
+xlsxwriter
+openpyxl
+sqlathanor
+dashtable
+schedule
+logaugment
+alembic 
+unidecode

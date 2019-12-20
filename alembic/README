@@ -1,0 +1,7 @@
+Generic single-database configuration.
+
+alembic init alembic
+
+alembic revision -m "baseline_start"  
+
+alembic upgrade head
