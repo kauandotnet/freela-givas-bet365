@@ -35,6 +35,10 @@ class MatchDataProvider:
                 result = self.inserir(objectData)           
             else:
                 encontrado.sumScore = objectData.sumScore
+                if(objectData.halfTimeResult is not None):
+                    encontrado.halfTimeResult = objectData.halfTimeResult
+                if(objectData.idAdversaryScoreFirst is not None):
+                    encontrado.idAdversaryScoreFirst = objectData.idAdversaryScoreFirst
                 if(objectData.matchResult is not None):
                     encontrado.matchResult = objectData.matchResult
                 if(objectData.idWinner is not None):

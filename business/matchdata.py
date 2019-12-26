@@ -10,9 +10,11 @@ class MatchData(Base):
     idMatchData = Column(Integer, primary_key=True)
     title = Column(String(200), nullable=False)
     matchResult = Column(String(50), nullable=True)
+    halfTimeResult = Column(String(50), nullable=True)
+    idAdversaryScoreFirst = Column(Integer, nullable=True)
     sumScore = Column(Integer, nullable=True)    
     date = Column(DateTime, default=datetime.datetime.now())
-    
+
     #RELATION
     idWinner = Column(Integer, nullable=True)
     idAdversary1 = Column(Integer, nullable=True)

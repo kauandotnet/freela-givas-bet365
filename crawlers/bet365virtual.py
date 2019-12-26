@@ -495,11 +495,36 @@ class CrawlerBet365Virtual(CrawlerSelenium):
                     matchResult = dataExt.extrairResultadoPartida(textoBase)     
                 elif('número de gols' in dado):
                     partida.sumScore = dataExt.extrairGols(textoBase)
+                elif('resultado correto - intervalo' in dado):
+                    vencedorPrimeiroTempo = dataExt.extrairVencedorPrimeiroTempo(textoBase)
+                    adversary1, adversary2 = dataExt.extrairAdversarios(partida.title)
+                    idWinner = self.retornaDadosAdversarioPorNome(vencedorPrimeiroTempo)
+                    idAdversary1 = self.retornaDadosAdversarioPorNome(adversary1)
+                    idAdversary2 = self.retornaDadosAdversarioPorNome(adversary2)
+                    halfTimeResult = dataExt.extrairResultadoPartida(textoBase)
+
+                    if(None not in (idWinner, idAdversary1, idAdversary2, halfTimeResult)):
+                        numGols1 = int(halfTimeResult.split('-')[0])
+                        numGols2 = int(halfTimeResult.split('-')[-1])
+                        maiorSaldoGols = numGols1 if numGols1 > numGols2 else numGols2
+                        menorSaldoGols = numGols2 if numGols1 > numGols2 else numGols1
+                        
+                        if(idWinner == idAdversary1):
+                            partida.halfTimeResult = f'{maiorSaldoGols}-{menorSaldoGols}'
+                        elif(idWinner == idAdversary2):
+                            partida.halfTimeResult = f'{menorSaldoGols}-{maiorSaldoGols}'
+                        else:
+                            partida.halfTimeResult = halfTimeResult
+                elif('time a marcar primeiro' in dado):
+                    scoreFirstAdvName = dataExt.extrairTimeMarcaPrimeiro(textoBase)
+                    if(scoreFirstAdvName is not None):
+                        partida.idAdversaryScoreFirst = self.retornaDadosAdversarioPorNome(scoreFirstAdvName)
 
             #CAPTURA IDs TIMES
             dicionarioNomesTimes = []
             if(len(matchMarkets) > 0 and winner != ''
             and adversary1 != '' and adversary2 != ''):
+                print('AKIIIIi7')
                 partida.idWinner = self.retornaDadosAdversarioPorNome(winner)
                 partida.idAdversary1 = self.retornaDadosAdversarioPorNome(adversary1)
                 partida.idAdversary2 = self.retornaDadosAdversarioPorNome(adversary2)
@@ -612,6 +637,8 @@ class CrawlerBet365Virtual(CrawlerSelenium):
         return resp
 
     def retornaDadosAdversarioPorNome(self, nome):
+        if(nome.strip() == '' or nome is None):
+            return None
         for item in self.listaAdversarys:
             if(nome.lower().strip() == item.name.lower().strip()):
                 return item.idAdversary

@@ -19,7 +19,7 @@ configParams = {
     'INTEGRACAO_EXTERNA_HABILITADA':True,
     
     'EXECUCAO_DIARIA': True, #True ou False
-    'PROCESSA_POR_PERIODO': None, #[(1, 12, 2019), (10, 12, 2019)] // se [] irá processar os ultimos 6 meses até o dia atual 
+    'PROCESSA_POR_PERIODO': None, #[(1, 11, 2019), (30, 11, 2019)] // se [] irá processar os ultimos 6 meses até o dia atual 
     'PROCESSA_ID_COMPETITION':(20120650, 'Copa do Mundo', 'Campeonato do Mundo'), #None ou (20120650, 'Copa do Mundo') 
 	
     'INTERVALO_TEMPO':1, #segundos

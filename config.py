@@ -15,7 +15,7 @@ threads = {
 }
 
 database = {
-    'mysql_conn_prod':'mysql+pymysql://root:123456@localhost/teste',
+    'mysql_conn_prod':'mysql+pymysql://root:123456@localhost/bet365',
 }
 conexao_banco_ativa = { 'mysql_conn': database['mysql_conn_prod']}
 

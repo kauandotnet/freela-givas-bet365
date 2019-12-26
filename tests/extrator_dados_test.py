@@ -1,5 +1,7 @@
 import re
-from business.extrator import extrairGols, extrairResultadoPartida, extrairVencedor
+from business.extrator import extrairGols, extrairTimeMarcaPrimeiro,\
+                                extrairResultadoPartida, extrairVencedor,\
+                                extrairVencedorPrimeiroTempo
 
 def test_gols():
     inputData = '0 goals~won~'
@@ -8,12 +10,12 @@ def test_gols():
 
 def test_vencedor_empate():
     inputData = 'draw~won~'
-    expected = 'draw'
-    assert extrairVencedor(inputData) == expected, "Deveria ser draw"
+    expected = 'Draw'
+    assert extrairVencedor(inputData) == expected, "Deveria ser Draw"
 
 def test_vencedor_unico():
     inputData = 'frança~won~'
-    expected = 'frança'
+    expected = 'França'
     assert extrairVencedor(inputData) == expected, "Deveria ser frança"
 
 def test_resultado_empate():
@@ -25,3 +27,18 @@ def test_resultado_com_vencedor():
     inputData = '=EUA #1-0~Won~' #'argentina #1-0~won~'
     expected = '1-0'
     assert extrairResultadoPartida(inputData) == expected, "Deveria ser 1-0"    
+
+def test_resultado_intervalo_com_vencedor():
+    inputData = '=Japão #1-0~Won~'
+    expected = '1-0'
+    assert extrairResultadoPartida(inputData) == expected, "Deveria ser 1-0"    
+
+def test_time_marca_primeiro():
+    inputData = '=Japão to score first~Won~'
+    expected = 'Japão'
+    assert extrairTimeMarcaPrimeiro(inputData) == expected, "Deveria ser Japão"    
+
+def test_time_vencedor_primeiro():
+    inputData = '=Japão #1-0~Won~'
+    expected = 'Japão'
+    assert extrairVencedorPrimeiroTempo(inputData) == expected, "Deveria ser Japão"    
