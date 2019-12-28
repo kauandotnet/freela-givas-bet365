@@ -604,24 +604,31 @@ class CrawlerBet365Virtual(CrawlerSelenium):
             return None, 500
 
     def carregaJsonTela(self, url):
-        dados = None
-        statusCode = 401       
-        if(self.sessionCookie is None):
-            self.logger.info(f'Detectada primeira requests, carregando cookie de sessao...')  
-            self.carregaSessao()      
+        try:
+            dados = None
+            statusCode = 401       
+            if(self.sessionCookie is None):
+                self.logger.info(f'Detectada primeira requests, carregando cookie de sessao...')  
+                self.carregaSessao()      
 
-        while statusCode == 401:
-            self.logger.info(f'Acessando URL json...{url}')            
-            jsonText, statusCode = self.GetFastRequestJson(url)
-            if(statusCode == 401):
-                self.logger.info('Carregamento do JSON não autorizado. Verificar login.')
+            while statusCode == 401:
+                self.logger.info(f'Acessando URL json...{url}')            
+                jsonText, statusCode = self.GetFastRequestJson(url)
+                if(statusCode == 401):
+                    self.logger.info('Carregamento do JSON não autorizado. Verificar login.')
+                    self.efetuaLogin()
+                    self.carregaSessao()
+                    dados = None
+                else:
+                    self.logger.info(f'Carregamento do JSON autorizado..')
+                    dados = jsonText
+                    statusCode = 200
+            return dados
+        except Exception as jex:
+            self.logger.error(f'Falha ao retornar JSON: {jex}')        
+            if('line 1 column 1' in str(jex).lower()):
                 self.efetuaLogin()
-                dados = None
-            else:
-                self.logger.info(f'Carregamento do JSON autorizado..')
-                dados = jsonText
-                statusCode = 200
-        return dados
+                self.carregaSessao()
 
     def extrairApostaVencedora(self, texto):
         for secao in texto.split('|'):
