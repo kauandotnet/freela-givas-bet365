@@ -12,4 +12,4 @@ class Adversary(Base):
     name = Column(String(100), nullable=False)
 
     #RELATION
-    idCompetition = Column(Integer, ForeignKey(Competition.idCompetition))
+    idCompetition = Column(Integer, ForeignKey(Competition.idCompetition), nullable=False)

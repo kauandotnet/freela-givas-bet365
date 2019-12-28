@@ -20,8 +20,9 @@ configParams = {
     
     'EXECUCAO_DIARIA': True, #True ou False
     'PROCESSA_POR_PERIODO': None, #[(1, 11, 2019), (30, 11, 2019)] // se [] irá processar os ultimos 6 meses até o dia atual 
-    'PROCESSA_ID_COMPETITION':(20120650, 'Copa do Mundo', 'Campeonato do Mundo'), #None ou (20120650, 'Copa do Mundo') 
+    'PROCESSA_ID_COMPETITION':None, #(20120650, 'Copa do Mundo', 'Campeonato do Mundo'), #None ou (20120650, 'Copa do Mundo') 
 	
+    'DELTA_LIMITE_COLETA_DIARIA':15, #minutos
     'INTERVALO_TEMPO':1, #segundos
     'INTERVALO_TEMPO_COMPETICOES':1, #segundos
     'LIMITE_COLETA_COMPETICAO':10, #unidade

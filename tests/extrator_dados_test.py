@@ -42,3 +42,10 @@ def test_time_vencedor_primeiro():
     inputData = '=Japão #1-0~Won~'
     expected = 'Japão'
     assert extrairVencedorPrimeiroTempo(inputData) == expected, "Deveria ser Japão"    
+
+def test_time_vencedor_primeiro_empate():
+    inputData = '=draw #1-1~won~'
+    expected = 'Draw'
+    assert extrairVencedorPrimeiroTempo(inputData) == expected, "Deveria ser Japão"    
+
+    

@@ -4,6 +4,8 @@ INSERT INTO `bet365`.`sport` (`idSport`,`name`) VALUES (2, 'Futebol');
 INSERT INTO `bet365`.`market` (`idMarket`, `name`, `idSport`) VALUES (1, 'Vencedor do Jogo', 1);
 INSERT INTO `bet365`.`market` (`idMarket`, `name`, `idSport`) VALUES (2, 'Número de Gols', 1);
 INSERT INTO `bet365`.`market` (`idMarket`, `name`, `idSport`) VALUES (3, 'Resultado Correto', 1);
+INSERT INTO `bet365`.`market` (`idMarket`, `name`, `idSport`) VALUES (4, 'Time a Marcar Primeiro', 1);
+INSERT INTO `bet365`.`market` (`idMarket`, `name`, `idSport`) VALUES (5, 'Intervalo - Resultado Correto', 1);
 
 INSERT INTO `bet365`.`competition` (`idCompetition`, `description`, `alternativeDescription`) VALUES (20120650, 'Copa do Mundo', 'Campeonato do Mundo');
 

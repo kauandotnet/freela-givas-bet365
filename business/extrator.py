@@ -4,6 +4,10 @@ def extrairVencedor(texto):
     return texto.replace('~won~','').replace('=','').capitalize().strip()
 
 def extrairVencedorPrimeiroTempo(texto):
+    # print('')
+    # print(f'@@@@@@@@ texto: {texto}')
+    # print('')
+
     base = texto.replace('~won~','').replace('=','')
     if('#' in base):
         return base.split('#')[0].capitalize().strip()
@@ -11,11 +15,14 @@ def extrairVencedorPrimeiroTempo(texto):
         return None
 
 def extrairTimeMarcaPrimeiro(texto):
-    if('no team' not in texto.lower()):
-        return texto.lower().replace('to score first~won~','').replace('=','').capitalize().strip()
-    else:
+    try:
+        if('no team' not in texto.lower()):
+            return texto.lower().replace('to score first~won~','').replace('=','').capitalize().strip()
+        else:
+            return None
+    except:
         return None
-
+        
 def extrairGols(texto):
     if(texto == '' or texto is None):
         return None

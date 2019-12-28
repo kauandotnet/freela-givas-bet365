@@ -392,7 +392,7 @@ class CrawlerBet365Virtual(CrawlerSelenium):
                 self.logger.info(f'Qtd. Fixture/MatchData localizadas no banco: {len(listaMatchFixturesExistentes)}')
 
                 for fixture in listaFixtures:
-                    if(fixture.time < datetime.now() - dtime.timedelta(minutes=60)
+                    if(fixture.time < datetime.now() - dtime.timedelta(minutes=cfgEspecifico.configParams['DELTA_LIMITE_COLETA_DIARIA'])
                     and self.execucaoDiaria):
                         self.logger.info(f'A Fixture será desconsiderada pois é antiga. Time:{fixture.time}')
                         continue
@@ -498,9 +498,9 @@ class CrawlerBet365Virtual(CrawlerSelenium):
                 elif('resultado correto - intervalo' in dado):
                     vencedorPrimeiroTempo = dataExt.extrairVencedorPrimeiroTempo(textoBase)
                     adversary1, adversary2 = dataExt.extrairAdversarios(partida.title)
-                    idWinner = self.retornaDadosAdversarioPorNome(vencedorPrimeiroTempo)
-                    idAdversary1 = self.retornaDadosAdversarioPorNome(adversary1)
-                    idAdversary2 = self.retornaDadosAdversarioPorNome(adversary2)
+                    idWinner = self.retornaDadosAdversarioPorNome(vencedorPrimeiroTempo, idCompetition)
+                    idAdversary1 = self.retornaDadosAdversarioPorNome(adversary1, idCompetition)
+                    idAdversary2 = self.retornaDadosAdversarioPorNome(adversary2, idCompetition)
                     halfTimeResult = dataExt.extrairResultadoPartida(textoBase)
 
                     if(None not in (idWinner, idAdversary1, idAdversary2, halfTimeResult)):
@@ -517,17 +517,16 @@ class CrawlerBet365Virtual(CrawlerSelenium):
                             partida.halfTimeResult = halfTimeResult
                 elif('time a marcar primeiro' in dado):
                     scoreFirstAdvName = dataExt.extrairTimeMarcaPrimeiro(textoBase)
-                    if(scoreFirstAdvName is not None):
-                        partida.idAdversaryScoreFirst = self.retornaDadosAdversarioPorNome(scoreFirstAdvName)
+                    if(scoreFirstAdvName is not None and scoreFirstAdvName != ''):
+                        partida.idAdversaryScoreFirst = self.retornaDadosAdversarioPorNome(scoreFirstAdvName, idCompetition)
 
             #CAPTURA IDs TIMES
             dicionarioNomesTimes = []
             if(len(matchMarkets) > 0 and winner != ''
             and adversary1 != '' and adversary2 != ''):
-                print('AKIIIIi7')
-                partida.idWinner = self.retornaDadosAdversarioPorNome(winner)
-                partida.idAdversary1 = self.retornaDadosAdversarioPorNome(adversary1)
-                partida.idAdversary2 = self.retornaDadosAdversarioPorNome(adversary2)
+                partida.idWinner = self.retornaDadosAdversarioPorNome(winner, idCompetition)
+                partida.idAdversary1 = self.retornaDadosAdversarioPorNome(adversary1, idCompetition)
+                partida.idAdversary2 = self.retornaDadosAdversarioPorNome(adversary2, idCompetition)
                 
                 numGols1 = int(matchResult.split('-')[0])
                 numGols2 = int(matchResult.split('-')[-1])
@@ -636,16 +635,18 @@ class CrawlerBet365Virtual(CrawlerSelenium):
             resp.append(coluna.text)
         return resp
 
-    def retornaDadosAdversarioPorNome(self, nome):
-        if(nome.strip() == '' or nome is None):
+    def retornaDadosAdversarioPorNome(self, nome, idCompetition):
+        if(nome is None or nome == ''):
             return None
         for item in self.listaAdversarys:
-            if(nome.lower().strip() == item.name.lower().strip()):
+            if(nome.lower().strip() == item.name.lower().strip()\
+            and idCompetition == item.idCompetition):
                 return item.idAdversary
         #SE NAO EXISTIR, GRAVA UM NOVO E RETORNA O ID
         adsProv = AdversaryProvider()
         newAd = Adversary()
         newAd.name = nome
+        newAd.idCompetition = idCompetition
         idNovo = adsProv.inserir(newAd)
         self.listaAdversarys = adsProv.retornaTodos()
         return idNovo

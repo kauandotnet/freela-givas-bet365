@@ -199,8 +199,8 @@ class CrawlerBet365VirtualOdds(CrawlerBet365Virtual):
                     matchDataNew.idCompetition = idCompetition
                     matchDataNew.idWinner = None
                     adversary1, adversary2 = dataExt.extrairAdversarios(titulo)
-                    matchDataNew.idAdversary1 = self.retornaDadosAdversarioPorNome(adversary1)
-                    matchDataNew.idAdversary2 = self.retornaDadosAdversarioPorNome(adversary2)
+                    matchDataNew.idAdversary1 = self.retornaDadosAdversarioPorNome(adversary1, idCompetition)
+                    matchDataNew.idAdversary2 = self.retornaDadosAdversarioPorNome(adversary2, idCompetition)
                     idMatchData = matchDataProv.atualizar(matchDataNew)
                     firstTimeSave = True
                 else:
@@ -226,7 +226,7 @@ class CrawlerBet365VirtualOdds(CrawlerBet365Virtual):
             objGrupoNome = self.GetChildElementObject(grupoOdds, cfgEspecifico.html_xpaths['GRUPO_NOME'])
             nomeGrupo = self.getTextoElemento(objGrupoNome)
             
-            if(nomeGrupo in ['Vencedor do Jogo', 'Número de Gols']):                    
+            if(nomeGrupo in ['Vencedor do Jogo', 'Número de Gols', 'Time a Marcar Primeiro']):                    
                 self.logger.info('')
                 self.logger.info('-------------------------------------')
                 self.logger.info(f'-->> Nome grupo: {nomeGrupo}')
@@ -247,7 +247,7 @@ class CrawlerBet365VirtualOdds(CrawlerBet365Virtual):
                     odds.idMatchData = idMatchData
                     odds.idMarket = self.buscaCompeticaoMarket(nomeGrupo)
                     result.append(odds)
-            elif(nomeGrupo == 'Resultado Correto'): 
+            elif(nomeGrupo in ['Resultado Correto', 'Intervalo - Resultado Correto']): 
                 self.logger.info('')
                 self.logger.info('-------------------------------------')
                 self.logger.info(f'Nome grupo: {nomeGrupo}')              
