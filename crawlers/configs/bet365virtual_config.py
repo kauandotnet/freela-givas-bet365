@@ -25,10 +25,11 @@ configParams = {
     'DELTA_LIMITE_COLETA_DIARIA':15, #minutos
     'INTERVALO_TEMPO':1, #segundos
     'INTERVALO_TEMPO_COMPETICOES':1, #segundos
-    'LIMITE_COLETA_COMPETICAO':10, #unidade
+    'LIMITE_COLETA_COMPETICAO':3, #unidade
     'LIMITE_COLETA_FIXTURE':99999, #unidade
 
     'DATA_SPORT_ID':'146', 
+    'DATA_SPORT_ID_MYSQL':1, 
     'DATA_SPORT_DESCRIPTOR':'FutebolVirtual'
 }
 

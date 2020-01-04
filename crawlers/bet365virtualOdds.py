@@ -224,12 +224,13 @@ class CrawlerBet365VirtualOdds(CrawlerBet365Virtual):
         listaGruposOdds = self.GetAllElementObject(cfgEspecifico.html_xpaths['LST_GRUPO_ODDS'])
         for grupoOdds in listaGruposOdds:
             objGrupoNome = self.GetChildElementObject(grupoOdds, cfgEspecifico.html_xpaths['GRUPO_NOME'])
-            nomeGrupo = self.getTextoElemento(objGrupoNome)
-            
-            if(nomeGrupo in ['Vencedor do Jogo', 'Número de Gols', 'Time a Marcar Primeiro']):                    
+            nomeGrupoRaw = self.getTextoElemento(objGrupoNome)
+            hashGrupo = nomeGrupoRaw.lower().replace(' ','')
+            if(hashGrupo in ['vencedordojogo', 'númerodegols', 'timeamarcarprimeiro',
+            'paraambosostimesmarcarem', 'paraotimedacasamarcar', 'paraotimevisitantemarcar']):                    
                 self.logger.info('')
                 self.logger.info('-------------------------------------')
-                self.logger.info(f'-->> Nome grupo: {nomeGrupo}')
+                self.logger.info(f'-->> Nome grupo: {nomeGrupoRaw}')
                 objContainerCelulas = self.GetAllChildElementObject(grupoOdds, cfgEspecifico.html_xpaths['CONTAINER_CELULA'])
 
                 for celula in objContainerCelulas:
@@ -245,42 +246,56 @@ class CrawlerBet365VirtualOdds(CrawlerBet365Virtual):
                     odds.name = nome
                     odds.value = valor                            
                     odds.idMatchData = idMatchData
-                    odds.idMarket = self.buscaCompeticaoMarket(nomeGrupo)
-                    result.append(odds)
-            elif(nomeGrupo in ['Resultado Correto', 'Intervalo - Resultado Correto']): 
+                    odds.idMarket = self.buscaCompeticaoMarket(nomeGrupoRaw)
+                    if(odds.idMarket is not None):
+                            result.append(odds)
+            elif(hashGrupo in ['resultadocorreto', 'intervalo-resultadocorreto', 'totaldegols']): 
                 self.logger.info('')
                 self.logger.info('-------------------------------------')
-                self.logger.info(f'Nome grupo: {nomeGrupo}')              
+                self.logger.info(f'Nome grupo: {nomeGrupoRaw}')              
                 objGrupoListaColunas = self.GetAllChildElementObject(grupoOdds, cfgEspecifico.html_xpaths['LST_GRUPO_COLUMNS'])  
                 for colunaGrupo in objGrupoListaColunas:   
                     objGrupoHeader = self.GetChildElementObject(colunaGrupo, cfgEspecifico.html_xpaths['COLUMN_HEADER'])  
                     headerColuna = self.getTextoElemento(objGrupoHeader)
+                    if(headerColuna == '' or headerColuna is None):
+                        continue
+
                     self.logger.info(f'Header da coluna - {headerColuna}') 
                     objListaContainerColuna = self.GetAllChildElementObject(colunaGrupo, cfgEspecifico.html_xpaths['CONTAINER_CELULA'])
-                    for celula in objListaContainerColuna: 
-                        objCelulaTitle = self.GetChildElementObject(celula, cfgEspecifico.html_xpaths['CELULA_TITLE'])
-                        objCelulaValue = self.GetChildElementObject(celula, cfgEspecifico.html_xpaths['CELULA_VALUE'])   
-                        nome = self.getTextoElemento(objCelulaTitle)
-                        valor = self.getTextoElemento(objCelulaValue)
-                        if(nome.strip() == '' or valor.strip() == ''):
+                    for index, celula in enumerate(objListaContainerColuna): 
+                        objCelulaSpan1 = self.GetChildElementObject(celula, cfgEspecifico.html_xpaths['CELULA_TITLE'])
+                        objCelulaSpan2 = self.GetChildElementObject(celula, cfgEspecifico.html_xpaths['CELULA_VALUE'])   
+                        nameCell = None
+                        valueCell = None 
+                        if(hashGrupo == 'totaldegols'):
+                            nameCell = str(index + 0.5)
+                            valueCell = self.getTextoElemento(objCelulaSpan1)
+                        else:
+                            nameCell = self.getTextoElemento(objCelulaSpan1)
+                            valueCell = self.getTextoElemento(objCelulaSpan2)
+
+                        if(nameCell.strip() == '' or valueCell.strip() == ''):
                             self.logger.warning('Campo nome/valor da celula está vazio. Indo para próxima celula...')
                             continue
-                        self.logger.info(f'Titulo: {nome} -- Valor: {valor} -- DatetimeOdd:{datetimeOdd}')
+                        self.logger.info(f'Titulo: {nameCell} -- Valor: {valueCell} -- DatetimeOdd:{datetimeOdd}')
                         odds = MatchOdds()                            
-                        odds.name = nome
-                        odds.value = valor          
+                        odds.name = nameCell
+                        odds.value = valueCell         
                         odds.columnHeader = headerColuna                    
                         odds.idMatchData = idMatchData
-                        odds.idMarket = self.buscaCompeticaoMarket(nomeGrupo)
-                        result.append(odds)
-                    
+                        odds.idMarket = self.buscaCompeticaoMarket(nomeGrupoRaw)
+                        if(odds.idMarket is not None):
+                            result.append(odds)
+
         return result
 
     def montaDataOdd(self, horario):
         try:
             hora = int(horario.split(':')[0])
             minutos = int(horario.split(':')[-1])
-            return datetime(datetime.now().year, datetime.now().month, datetime.now().day, hora, minutos , 0)
+            dataGerada = datetime(datetime.utcnow().year, datetime.utcnow().month, datetime.utcnow().day, hora, minutos , 0)
+            self.logger.info(f'HORARIO CAPTURADO DA TABELA: {dataGerada}')
+            return None if dataGerada > datetime.now() + dtime.timedelta(hours=4) else dataGerada
         except Exception as ex:
             self.logger.error(f'Falha ao montar data da Odd: {ex}')
             return None

@@ -350,10 +350,9 @@ class CrawlerBet365Virtual(CrawlerSelenium):
             self.logger.info('===========================================')
             self.logger.info(f'Processando período: {tuplaPeriodoData}.')
             self.logger.info('===========================================')
-            idEsporte = cfgEspecifico.configParams['DATA_SPORT_ID']
+            idEsporte = cfgEspecifico.configParams['DATA_SPORT_ID_MYSQL']
             dataInicio = tuplaPeriodoData[0]
             dataFim = tuplaPeriodoData[1]
-            competitionProv = CompetitionProvider()
 
             #COMPETICOES
             listaCompeticoes = self.retornaCompeticoes(idEsporte, dataInicio, dataFim)
@@ -365,14 +364,6 @@ class CrawlerBet365Virtual(CrawlerSelenium):
             for competition in listaCompeticoes:
                 idCompetition = competition.idCompetition
                 logaugment.set(self.logger, custom_key=idCompetition)
-                self.logger.info(f'ID Competicao:{idCompetition} -- Nome: {competition.description}')
-                self.logger.info(f'Gravando competition no banco...')
-                competitionRecorded = competitionProv.atualizar(competition)
-                if(competitionRecorded):
-                    self.logger.info(f'Competicao gravada. Id Gerado: {idCompetition}')
-                else:
-                    self.logger.error(f'Competicao não foi gravada. Id: {idCompetition}')
-                    continue
 
                 urlFixture = self.montarUrlFixture(idCompetition, dataInicio, dataFim)
                 #FIXTURES
@@ -406,22 +397,20 @@ class CrawlerBet365Virtual(CrawlerSelenium):
                     self.logger.info('-------------------------------------------')
                     self.logger.info(f'FIXTURE -->> IdFixture:{idFixture} -- Descricao:{fixture.description} -- Data: {fixture.dateDescription}')
                     fixtureProv.atualizar(fixture)
-                    if(competitionRecorded):
-                        self.logger.info(f'Fixture gravada. Id Gerado: {idFixture}')
-                        urlPartida = self.montarUrlResultadoPartida(idCompetition, dataInicio, dataFim, idFixture, idChallenge)
-                        matchData, matchrawData, dicNomesTimes = self.retornaDadosPartida(urlPartida, idCompetition, idFixture, idChallenge)
-                        if(matchData is not None and matchrawData is not None):
-                            self.logger.info(f'PARTIDA -->> Vencedor:{matchData.idWinner} -- Resultado: {matchData.matchResult} -- Gols:{matchData.sumScore}')                            
-                            dadosPartidaIntegracao = {
-                            'matchResult':matchData.matchResult, 
-                            'idFixture':matchData.idFixture, 
-                            'date':matchData.date}
 
-                            matchdataProv.atualizar(matchData)
-                            matchdatarawProv.atualizar(matchrawData)                       
-                    else:
-                        self.logger.error(f'Fixture não foi gravada. Id: {idFixture}')
-                        continue
+                    self.logger.info(f'Fixture gravada. Id Gerado: {idFixture}')
+                    urlPartida = self.montarUrlResultadoPartida(idCompetition, dataInicio, dataFim, idFixture, idChallenge)
+                    matchData, matchrawData, dicNomesTimes = self.retornaDadosPartida(urlPartida, idCompetition, idFixture, idChallenge)
+                    if(matchData is not None and matchrawData is not None):
+                        self.logger.info(f'PARTIDA -->> Vencedor:{matchData.idWinner} -- Resultado: {matchData.matchResult} -- Gols:{matchData.sumScore}')                            
+                        dadosPartidaIntegracao = {
+                        'matchResult':matchData.matchResult, 
+                        'idFixture':matchData.idFixture, 
+                        'date':matchData.date}
+
+                        matchdataProv.atualizar(matchData)
+                        matchdatarawProv.atualizar(matchrawData)                       
+
                     self.logger.info('-------------------------------------------')
                     self.sleep()
                 self.sleep(cfgEspecifico.configParams['INTERVALO_TEMPO_COMPETICOES'])
@@ -431,6 +420,10 @@ class CrawlerBet365Virtual(CrawlerSelenium):
             self.logger.error(f'Falha ao processar os detalhes: {me}.')
 
     def retornaCompeticoes(self, idEsporte, dataInicio, dataFim):
+        comProv = CompetitionProvider()        
+        return comProv.retornaTodos(idEsporte)
+
+    def retornaCompeticoesExtraBet(self, idEsporte, dataInicio, dataFim):
         result = []
         compFixa = cfgEspecifico.configParams['PROCESSA_ID_COMPETITION']
         if(compFixa is not None):

@@ -76,3 +76,12 @@ class AdversaryProvider():
         finally:
             if(self.session is not None):     
                 self.session.close()              
+
+    def retornaTodosPorListaNomes(self, listaNomes):
+        try:
+            self.session =self.create_session()
+            return self.session.query(Adversary)\
+                    .filter(Adversary.name.in_(listaNomes)).all()
+        finally:
+            if(self.session is not None):     
+                self.session.close()           

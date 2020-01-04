@@ -4,10 +4,6 @@ def extrairVencedor(texto):
     return texto.replace('~won~','').replace('=','').capitalize().strip()
 
 def extrairVencedorPrimeiroTempo(texto):
-    # print('')
-    # print(f'@@@@@@@@ texto: {texto}')
-    # print('')
-
     base = texto.replace('~won~','').replace('=','')
     if('#' in base):
         return base.split('#')[0].capitalize().strip()
