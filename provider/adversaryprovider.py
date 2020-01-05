@@ -57,16 +57,42 @@ class AdversaryProvider():
                 self.session.close()   
             return result
 
-    def retornaTodos(self, removeDraw=False):
+    def retornaIdEmpate(self, idCompetition):
+        try:
+            self.session =self.create_session()
+            return self.session.query(Adversary)\
+                    .filter(Adversary.name == 'Draw')\
+                        .filter(Adversary.idCompetition == idCompetition)\
+                        .all()
+        finally:
+            if(self.session is not None):     
+                self.session.close()     
+
+    def retornaTodos(self, idCompetition=None, removeDraw=False):
         try:
             self.session =self.create_session()
             query = self.session.query(Adversary)
+
+            advProv = AdversaryProvider()
+            if(idCompetition is None):
+                return query.all()
+
+            drawCompetition = advProv.retornaIdEmpate(idCompetition)            
             if(removeDraw):
-                query = query.filter(Adversary.idAdversary != 7)
+                query = query.filter(Adversary.idAdversary != drawCompetition.idAdversary)
             return query.all()
         finally:
             if(self.session is not None):     
                 self.session.close()       
+
+    def retornaPorId(self, idAdversary):
+        try:
+            self.session =self.create_session()
+            return self.session.query(Adversary)\
+                    .filter(Adversary.idAdversary == idAdversary).first()
+        finally:
+            if(self.session is not None):     
+                self.session.close()     
 
     def retornaTodosPorNomes(self, listaNome):
         try:

@@ -13,8 +13,6 @@ class MatchOdds(Base):
     columnHeader = Column(String(50), nullable=True)
     name = Column(String(100), nullable=True)
     value = Column(Numeric(precision=10, scale=2))
-    yes = Column(Numeric(precision=10, scale=2))
-    no = Column(Numeric(precision=10, scale=2))
     date = Column(DateTime, default=datetime.datetime.now())
     
     #RELATION

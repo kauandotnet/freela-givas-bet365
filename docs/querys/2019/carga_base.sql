@@ -11,16 +11,17 @@ INSERT INTO `bet365`.`market` (`idMarket`, `name`, `idSport`) VALUES (7, 'Para A
 INSERT INTO `bet365`.`market` (`idMarket`, `name`, `idSport`) VALUES (8, 'Para o Time Da Casa Marcar', 1);
 INSERT INTO `bet365`.`market` (`idMarket`, `name`, `idSport`) VALUES (9, 'Para o Time  Visitante Marcar', 1);
 
-INSERT INTO `bet365`.`competition` (`idCompetition`, `description`, `alternativeDescription`) VALUES (20120650, 'Copa do Mundo', 'Campeonato do Mundo');
+INSERT INTO `bet365`.`competition` (`idCompetition`, `description`, `alternativeDescription`, `idSport`) VALUES (20120650, 'Copa do Mundo', 'Campeonato do Mundo', 1);
 
-INSERT INTO `bet365`.`typemarket` (`idTypeMarket`,`label`) VALUES (1, 'over 0.5');
-INSERT INTO `bet365`.`typemarket` (`idTypeMarket`,`label`) VALUES (2, 'under 0.5');
-INSERT INTO `bet365`.`typemarket` (`idTypeMarket`,`label`) VALUES (3, 'over 1.5');
-INSERT INTO `bet365`.`typemarket` (`idTypeMarket`,`label`) VALUES (4, 'under 1.5');
-INSERT INTO `bet365`.`typemarket` (`idTypeMarket`,`label`) VALUES (5, 'over 2.5');
-INSERT INTO `bet365`.`typemarket` (`idTypeMarket`,`label`) VALUES (6, 'under 2.5');
-INSERT INTO `bet365`.`typemarket` (`idTypeMarket`,`label`) VALUES (7, 'over 3.5');
-INSERT INTO `bet365`.`typemarket` (`idTypeMarket`,`label`) VALUES (8, 'under 3.5');
+INSERT INTO `bet365`.`typemarket` (`idTypeMarket`,`label`) VALUES (1, 'over 0.5', 2);
+INSERT INTO `bet365`.`typemarket` (`idTypeMarket`,`label`) VALUES (2, 'under 0.5', 2);
+INSERT INTO `bet365`.`typemarket` (`idTypeMarket`,`label`) VALUES (3, 'over 1.5', 2);
+INSERT INTO `bet365`.`typemarket` (`idTypeMarket`,`label`) VALUES (4, 'under 1.5', 2);
+INSERT INTO `bet365`.`typemarket` (`idTypeMarket`,`label`) VALUES (5, 'over 2.5', 2);
+INSERT INTO `bet365`.`typemarket` (`idTypeMarket`,`label`) VALUES (6, 'under 2.5', 2);
+INSERT INTO `bet365`.`typemarket` (`idTypeMarket`,`label`) VALUES (7, 'over 3.5', 2);
+INSERT INTO `bet365`.`typemarket` (`idTypeMarket`,`label`) VALUES (8, 'under 3.5', 2);
+
 INSERT INTO `bet365`.`typemarket` (`idTypeMarket`,`label`) VALUES (9, 'gol 0');
 INSERT INTO `bet365`.`typemarket` (`idTypeMarket`,`label`) VALUES (10, 'gol 1');
 INSERT INTO `bet365`.`typemarket` (`idTypeMarket`,`label`) VALUES (11, 'gol 2');

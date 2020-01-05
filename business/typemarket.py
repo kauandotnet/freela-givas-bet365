@@ -10,3 +10,6 @@ class TypeMarket(Base):
 
     idTypeMarket = Column(Integer, primary_key=True)
     label = Column(String(50), default=False, nullable=False)
+    
+    #RELATION
+    idMarket = Column(Integer, ForeignKey(Market.idMarket), nullable=True)

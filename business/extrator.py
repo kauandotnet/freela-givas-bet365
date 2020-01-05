@@ -1,7 +1,19 @@
 import re
 
+def extrairApostaVencedora(texto):
+    for secao in texto.split('|'):
+        if 'won' in secao.lower():
+            return secao
+    return 'N/A'
+
 def extrairVencedor(texto):
     return texto.replace('~won~','').replace('=','').capitalize().strip()
+
+def extrairListaApostas(texto):
+    result = []
+    for secao in texto.split('|'):
+        result.append({'label':secao, 'broken': 'won' in secao.lower()}) 
+    return result
 
 def extrairVencedorPrimeiroTempo(texto):
     base = texto.replace('~won~','').replace('=','')
@@ -20,12 +32,9 @@ def extrairTimeMarcaPrimeiro(texto):
         return None
         
 def extrairGols(texto):
-    if(texto == '' or texto is None):
-        return None
     m = re.search(r'(\d)', texto)
     if(m):
-        grupo = m.group(1)
-        return grupo.replace(' ','').strip() if grupo is not None else None
+        return m.group(1).replace(' ','').strip()
     return None
 
 def extrairResultadoPartida(texto):
@@ -40,3 +49,25 @@ def extrairAdversarios(texto):
         return m.group(2).strip(), m.group(3).strip()
 
     return None, None
+
+def extrairPosicaoFinalSpeedway(texto, nameAdversary):
+    listaNomes = texto.split('|')
+    for index, item in enumerate(listaNomes):
+        if(nameAdversary.lower() in item.lower()):
+            return index
+    return None
+
+def extrairOverUnder(texto):
+    valorLimite = None
+    vencedor = extrairVencedor(texto)
+    m = re.search(r'(\d\s*.\s*\d)', texto)
+    if(m):
+        valorLimite = m.group(1).replace(' ','').strip()
+
+    if('over' in vencedor.lower()):
+        return 'over', valorLimite
+    elif('under' in vencedor.lower()):
+        return 'under', valorLimite
+    
+    return None, valorLimite
+    
