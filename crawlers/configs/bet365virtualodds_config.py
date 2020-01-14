@@ -12,7 +12,7 @@ urls = {
 
 configParams = {
     'DOMAIN':'BET365_VIRTUAL_ODDS',  
-    'PROCESSA_ID_COMPETITION': (20120650, 'Copa do Mundo', 'Campeonato do Mundo'),  
+    'PROCESSA_ID_COMPETITION': None, #(20120650, 'Copa do Mundo', 'Campeonato do Mundo'),  
 }
 
 html_xpaths = {

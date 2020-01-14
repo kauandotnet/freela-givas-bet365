@@ -6,13 +6,19 @@ def extrairApostaVencedora(texto):
             return secao
     return 'N/A'
 
+def extrairApostaVencedoraComGols(texto):
+    for secao in texto.split('|'):
+        if 'won' in secao.lower() and 'goal' in secao.lower():
+            return extrairVencedor(secao)
+    return 'N/A'
+
 def extrairVencedor(texto):
     return texto.replace('~won~','').replace('=','').capitalize().strip()
 
 def extrairListaApostas(texto):
     result = []
     for secao in texto.split('|'):
-        result.append({'label':secao, 'broken': 'won' in secao.lower()}) 
+        result.append({'label':secao, 'saiu': 'won' in secao.lower()}) 
     return result
 
 def extrairVencedorPrimeiroTempo(texto):
@@ -44,7 +50,7 @@ def extrairResultadoPartida(texto):
     return None
 
 def extrairAdversarios(texto):
-    m = re.search(r'(?i)(\d.\d*)\s*(\w.*)\s*v\s*(\w.*)', texto)
+    m = re.search(r'(?i)(\d.\d*)\s*(\w.*)\s* v \s*(\w.*)', texto)
     if(m):
         return m.group(2).strip(), m.group(3).strip()
 

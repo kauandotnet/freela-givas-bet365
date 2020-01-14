@@ -408,11 +408,16 @@ class CrawlerBet365Virtual(CrawlerSelenium):
                     if(matchData is not None and matchrawData is not None):
                         self.logger.info(f'PARTIDA -->> Vencedor:{matchData.idWinner} -- Resultado: {matchData.matchResult} -- Gols:{matchData.sumScore}')                            
 
-                        matchSumScore = matchData.sumScore
+                        matchResult = matchData.matchResult
+                        halfTimeResult = matchData.halfTimeResult
+                        idAdversary1 = matchData.idAdversary1
+                        idAdversaryScoreFirst = matchData.idAdversaryScoreFirst
                         matchMarketsRaw = matchrawData.matchMarkets
                         matchdataProv.atualizar(matchData)
                         matchdatarawProv.atualizar(matchrawData)                       
-                        self.calculaMaximas(matchMarketsRaw, idCompetition)
+                        self.calculaMaximas(matchMarketsRaw, idCompetition, 
+                                            matchResult, halfTimeResult,
+                                            idAdversary1, idAdversaryScoreFirst)
                     self.logger.info('-------------------------------------------')
                     self.sleep()
                 self.sleep(cfgEspecifico.configParams['INTERVALO_TEMPO_COMPETICOES'])
@@ -542,11 +547,44 @@ class CrawlerBet365Virtual(CrawlerSelenium):
             self.logger.error(f'Dados da partida(idFixture:{idFixture}) com problemas. Detalhes: {ex}')
             return None
 
-    def calculaMaximas(self, jsonRawText, idCompetition):
+    def calculaMaximas(self, jsonRawText, idCompetition, 
+                        matchResultFinal, matchResultIntervalo,
+                        idAdversary1, idAdversaryScoreFirst):
         try:
             self.logger.info('Processando as maximas...')
-            maximaProv = MaximaProvider()
-            typeMarkProvider = TypeMarketProvider()
+            listaMaxTime = []
+            #CALCULO MERCADO TIME MARCA PRIMEIRO
+            listaMaxTime.append({'label':'casa marca primeiro sim', 'saiu': idAdversary1 == idAdversaryScoreFirst})
+            listaMaxTime.append({'label':'casa marca primeiro nao', 'saiu': not (idAdversary1 == idAdversaryScoreFirst)})
+
+            #CALCULO MERCADO MANDANTE HT/FT E EMPATE
+            golCasaHT = int(matchResultFinal.split('-')[0])
+            golVisitanteHT = int(matchResultFinal.split('-')[1])
+            golCasaFT = int(matchResultFinal.split('-')[0])
+            golVisitanteFT = int(matchResultFinal.split('-')[1])
+
+            listaMaxTime.append({'label':'mandante HT', 'saiu': golCasaHT > golVisitanteHT})
+            listaMaxTime.append({'label':'empate HT', 'saiu': golCasaHT == golVisitanteHT})
+            listaMaxTime.append({'label':'visitante HT', 'saiu': golCasaHT < golVisitanteHT})
+            listaMaxTime.append({'label':'mandante FT', 'saiu': golCasaFT > golVisitanteFT})
+            listaMaxTime.append({'label':'empate FT', 'saiu': golCasaFT == golVisitanteFT})
+            listaMaxTime.append({'label':'visitante FT', 'saiu': golCasaFT < golVisitanteFT})
+
+            #CALCULO MERCADO HOME MARCA E AWAY MARCA
+            listaMaxTime = []
+            golCasa = int(matchResultFinal.split('-')[0])
+            golVisitante = int(matchResultFinal.split('-')[1])
+            timeCasaMarca = golCasa > 0
+            timeVisitanteMarca = golVisitante > 0
+            listaMaxTime.append({'label':'casa marca sim', 'saiu': timeCasaMarca})
+            listaMaxTime.append({'label':'casa marca nao', 'saiu': not timeCasaMarca})
+            listaMaxTime.append({'label':'visitante marca sim', 'saiu': timeVisitanteMarca})
+            listaMaxTime.append({'label':'visitante marca nao', 'saiu': not timeVisitanteMarca})
+
+            for itemMaximaBase in listaMaxTime:                
+                self.registraMaxima(idCompetition, itemMaximaBase, itemMaximaBase["label"])
+            
+            #OUTROS MERCADOS
             matchMarkets = ast.literal_eval(jsonRawText)
             for dado in matchMarkets:
                 listaTextoBaseSecoes = []
@@ -566,50 +604,77 @@ class CrawlerBet365Virtual(CrawlerSelenium):
                             continue
                         else:
                             textoBuscaMarket = f'{tipo} {valor}'
-                    else:
-                        continue
+                    elif('númerodegols' in labelBase):
+                        valor = dataExt.extrairApostaVencedoraComGols(itemMaximaBase['label'].lower())
+                        valor = valor.replace('goals','').replace('goal','')
+                        textoBuscaMarket = f'gol {valor}'
+                    if('resultadocorreto' in labelBase or 'intervalo-resultadocorreto' in labelBase):
+                        apostaWon = dataExt.extrairApostaVencedora(itemMaximaBase['label'].lower())
+                        apostaWon = itemMaximaBase['label'].lower() if apostaWon == 'N/A' else apostaWon
+                        if('any other' in apostaWon):
+                            matchResult = 'outro'
+                        else:
+                            matchResult = dataExt.extrairResultadoPartida(apostaWon)
 
-                    if(textoBuscaMarket is None):
-                        self.logger.info('Extracao do textoBuscaMarket falhou.')
-                        continue
-                    #BUSCA TYPE_MARKET PELO TITULO
-                    typeMarket = typeMarkProvider.retornaMarketPorLabel(textoBuscaMarket)
-                    if(typeMarket is None):
-                        self.logger.info(f'TypeMarket com label {itemMaximaBase["label"]} nao encontrado.')
+                        tipo = 'HT' if('intervalo' in labelBase) else 'FT'
+                        textoBuscaMarket = f'{matchResult} {tipo}'
+                    elif('paraambosostimesmarcarem' in labelBase and 'resultado' not in labelBase):
+                        tipo = 'sim' if 'yes' in itemMaximaBase['label'].lower() else 'nao'
+                        textoBuscaMarket = f'ambas {tipo}'       
+                    else:
                         continue
                     
-                    #BUSCA MAXIMA PELO idTypeMarket
-                    broken = itemMaximaBase['broken']
-                    maximaEncontrada = maximaProv.retornaPorTypeMarket(idCompetition, typeMarket.idTypeMarket, broken)
-                    if(maximaEncontrada is not None):                        
-                        self.logger.info('Maxima encontrada.') 
-                        if(broken):
-                            self.logger.info('Maxima rompida.')
-                            #ATUALIZA O CAMPO BROKEN DA ULTIMA DO BANCO E INSERE UMA NOVA COM lastSequenceCount = 0
-                            maximaEncontrada.broken = broken
-                            maximaEncontrada.date = datetime.now()
-                            maximaProv.atualizar(maximaEncontrada) 
-                            self.logger.info('Maxima atualizada para broken=True.') 
-                            maximaProv.inserir(self.gerarEntidadeMaxima(idCompetition, typeMarket.idTypeMarket, False))  
-                            self.logger.info('Nova maxima criada com ZERO a partir da rompida.')   
-                        else:
-                            self.logger.info('Maxima nao foi rompida.')
-                            #APENAS ATUALIZA O lastSequenceCount DA ULTIMA DO BANCO
-                            maximaEncontrada.date = datetime.now() 
-                            maximaEncontrada.idCompetition = idCompetition
-                            maximaEncontrada.lastSequenceCount = maximaEncontrada.lastSequenceCount + 1
-                            maximaProv.atualizar(maximaEncontrada) 
-                            self.logger.info('Contador da maxima incrementado.')     
-                    else:
-                        self.logger.info('Maxima nao encontrada.')
-                        maxima = Maxima()
-                        maxima.date = datetime.now()
-                        maxima.idCompetition = idCompetition
-                        maxima.idTypeMarket = typeMarket.idTypeMarket
-                        maximaProv.inserir(maxima)
-                        self.logger.info('Novo registro de Maxima criado.')
+                    sucesso = self.registraMaxima(idCompetition, itemMaximaBase, textoBuscaMarket)
+                    if(not sucesso):
+                        continue
         except Exception as ex:
             self.logger.error(f'Falha ao processar as maximas - Detalhe: {ex}')
+    
+    def registraMaxima(self, idCompetition, itemMaximaBase, textoBuscaMarket):
+        maximaProv = MaximaProvider()
+        typeMarkProvider = TypeMarketProvider()
+        if(textoBuscaMarket is None):
+            self.logger.info('Extracao do textoBuscaMarket falhou.')
+            return False
+        #BUSCA TYPE_MARKET PELO TITULO
+        typeMarket = typeMarkProvider.retornaMarketPorLabel(textoBuscaMarket)
+        if(typeMarket is None):
+            self.logger.info(f'TypeMarket com label {itemMaximaBase["label"]} nao encontrado.')
+            return False
+        
+        #BUSCA MAXIMA PELO idTypeMarket
+        saiu = itemMaximaBase['saiu']
+        maximaEncontrada = maximaProv.retornaPorTypeMarket(idCompetition, typeMarket.idTypeMarket, None)
+        if(maximaEncontrada is not None):                        
+            self.logger.info('Maxima encontrada.') 
+            if(saiu):
+                self.logger.info('Maxima rompida.')
+                #ATUALIZA O CAMPO BROKEN DA ULTIMA DO BANCO E INSERE UMA NOVA COM lastSequenceCount = 0
+                maximaEncontrada.broken = True
+                maximaEncontrada.date = datetime.now()
+                maximaProv.atualizar(maximaEncontrada) 
+                self.logger.info('Maxima atualizada para broken=True.') 
+                maximaProv.inserir(self.gerarEntidadeMaxima(idCompetition, typeMarket.idTypeMarket, False))  
+                self.logger.info('Nova maxima criada com ZERO a partir da rompida.')  
+                return True 
+            else:
+                self.logger.info('Maxima nao foi rompida.')
+                #APENAS ATUALIZA O lastSequenceCount DA ULTIMA DO BANCO
+                maximaEncontrada.date = datetime.now() 
+                maximaEncontrada.idCompetition = idCompetition
+                maximaEncontrada.lastSequenceCount = maximaEncontrada.lastSequenceCount + 1
+                maximaProv.atualizar(maximaEncontrada) 
+                self.logger.info('Contador da maxima incrementado.')     
+                return True
+        else:
+            self.logger.info('Maxima nao encontrada.')
+            maxima = Maxima()
+            maxima.date = datetime.now()
+            maxima.idCompetition = idCompetition
+            maxima.idTypeMarket = typeMarket.idTypeMarket
+            maximaProv.inserir(maxima)
+            self.logger.info('Novo registro de Maxima criado.')
+            return True
 
     def gerarEntidadeMaxima(self, idCompetition, idType, broken=None, lastSequence=None):
         maxima = Maxima()   
@@ -729,7 +794,7 @@ class CrawlerBet365Virtual(CrawlerSelenium):
         newAd = Adversary()
         newAd.name = nome
         newAd.idCompetition = idCompetition
-        idNovo = adsProv.inserir(newAd)
+        idNovo = adsProv.atualizar(newAd)
         self.listaAdversarys = adsProv.retornaTodos()
         return idNovo
         

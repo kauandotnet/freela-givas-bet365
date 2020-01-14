@@ -111,7 +111,7 @@ class CrawlerBet365VirtualOdds(CrawlerBet365Virtual):
         if(len(self.listaMemoriaMarkets) == 0):
             self.listaMemoriaMarkets = marketProv.retornaTodosPorEsporte(idSport=1)   
         
-        idMarket = next((c.idMarket for c in self.listaMemoriaMarkets if c.name == nameMarket), None) 
+        idMarket = next((c.idMarket for c in self.listaMemoriaMarkets if c.name.lower().replace(' ','') == nameMarket.lower().replace(' ','')), None) 
         return idMarket
 
     def processaCapturaOdds(self):
@@ -145,8 +145,10 @@ class CrawlerBet365VirtualOdds(CrawlerBet365Virtual):
             self.logger.info('')
             self.logger.info('***********************************')
             nameCompetition = self.getTextoElemento(lnkCompetition)
-            if(nameCompetition != cfgEspecifico.configParams['PROCESSA_ID_COMPETITION'][2]):
-                continue
+            if(cfgEspecifico.configParams['PROCESSA_ID_COMPETITION'] is not None):
+                if(nameCompetition != cfgEspecifico.configParams['PROCESSA_ID_COMPETITION'][2]):
+                    continue
+
             self.logger.info(f'Processando competicao :{nameCompetition}')
             #BUSCA ID COMPETITION
             compProv = CompetitionProvider()
@@ -154,10 +156,8 @@ class CrawlerBet365VirtualOdds(CrawlerBet365Virtual):
             if(competitionFound is None):
                 self.logger.error(f'Competicao com nome {nameCompetition} nao encontrada.')
                 continue
+
             idCompetition = competitionFound.idCompetition
-            if(idCompetition != cfgEspecifico.configParams['PROCESSA_ID_COMPETITION'][0]):
-                continue
-            
             lnkCompetition.click()
             self.sleep(1)
 
@@ -226,8 +226,7 @@ class CrawlerBet365VirtualOdds(CrawlerBet365Virtual):
             objGrupoNome = self.GetChildElementObject(grupoOdds, cfgEspecifico.html_xpaths['GRUPO_NOME'])
             nomeGrupoRaw = self.getTextoElemento(objGrupoNome)
             hashGrupo = nomeGrupoRaw.lower().replace(' ','')
-            if(hashGrupo in ['vencedordojogo', 'númerodegols', 'timeamarcarprimeiro',
-            'paraambosostimesmarcarem', 'paraotimedacasamarcar', 'paraotimevisitantemarcar']):                    
+            if(hashGrupo in ['paraotimedacasamarcar', 'paraotimevisitantemarcar']): #['vencedordojogo', 'númerodegols', 'timeamarcarprimeiro','paraambosostimesmarcarem']):                    
                 self.logger.info('')
                 self.logger.info('-------------------------------------')
                 self.logger.info(f'-->> Nome grupo: {nomeGrupoRaw}')
@@ -239,6 +238,7 @@ class CrawlerBet365VirtualOdds(CrawlerBet365Virtual):
                     nome = self.getTextoElemento(celulaNome)
                     valor = self.getTextoElemento(celulaValor)
                     if(nome.strip() == '' or valor.strip() == ''):
+                        self.logger.warning('Campo nome/valor da celula está vazio. Indo para próxima celula...')
                         continue
                     
                     self.logger.info(f'Titulo: {nome} -- Valor: {valor} -- DatetimeOdd:{datetimeOdd}')

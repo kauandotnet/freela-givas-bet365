@@ -27,7 +27,8 @@ class AdversaryProvider():
             result = False
             self.session = self.create_session()
             encontrado = self.session.query(Adversary)\
-                    .filter_by(name=objectData.name)\
+                    .filter(Adversary.idCompetition == objectData.idCompetition)\
+                    .filter(Adversary.name.ilike(objectData.name))\
                     .first()
             if(encontrado is None):
                 result = self.inserir(objectData) is not None

@@ -2,7 +2,7 @@ login_credenciais = {
     'URL_LANGUAGE':'https://www.bet365.com/br/',
     'URL_LOGIN':'https://www.bet365.com/',
 	"USER_LOGIN": 'rodrigoreisf', 
-    "SENHA_LOGIN": 'OverUnreal34$'
+    "SENHA_LOGIN": ''
 }
 
 urls = {
