@@ -12,6 +12,12 @@ def extrairApostaVencedoraComGols(texto):
             return extrairVencedor(secao)
     return 'N/A'
 
+def extrairGolsExatos(texto):
+    m = re.search(r'(\d\s*)', texto)
+    if(m):
+        return m.group(1).replace(' ','').strip()
+    return None
+
 def extrairVencedor(texto):
     return texto.replace('~won~','').replace('=','').capitalize().strip()
 

@@ -1,7 +1,7 @@
 import re
 from business.extrator import extrairGols, extrairTimeMarcaPrimeiro,\
                                 extrairResultadoPartida, extrairVencedor,\
-                                extrairVencedorPrimeiroTempo
+                                extrairVencedorPrimeiroTempo, extrairApostaVencedoraComGols
 
 def test_gols():
     inputData = '0 goals~won~'
@@ -47,5 +47,10 @@ def test_time_vencedor_primeiro_empate():
     inputData = '=draw #1-1~won~'
     expected = 'Draw'
     assert extrairVencedorPrimeiroTempo(inputData) == expected, "Deveria ser Japão"    
+
+def test_time_gols_exatos():
+    inputData = '0goals~~'
+    expected = '0'
+    assert extrairApostaVencedoraComGols(inputData) == expected, "Deveria ser 0"    
 
     

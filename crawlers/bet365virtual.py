@@ -605,10 +605,9 @@ class CrawlerBet365Virtual(CrawlerSelenium):
                         else:
                             textoBuscaMarket = f'{tipo} {valor}'
                     elif('númerodegols' in labelBase):
-                        valor = dataExt.extrairApostaVencedoraComGols(itemMaximaBase['label'].lower())
-                        valor = valor.replace('goals','').replace('goal','')
+                        valor = dataExt.extrairGolsExatos(itemMaximaBase['label'].lower())
                         textoBuscaMarket = f'gol {valor}'
-                    if('resultadocorreto' in labelBase or 'intervalo-resultadocorreto' in labelBase):
+                    elif('resultadocorreto' in labelBase or 'intervalo-resultadocorreto' in labelBase):
                         apostaWon = dataExt.extrairApostaVencedora(itemMaximaBase['label'].lower())
                         apostaWon = itemMaximaBase['label'].lower() if apostaWon == 'N/A' else apostaWon
                         if('any other' in apostaWon):
