@@ -16,7 +16,7 @@ configParams = {
     'DOMAIN':'BET365_VIRTUAL',
     'SITE_DOMAIN':'https://www.bet365.com/',
     'EXECUTAR_MODO_HEADLESS': True,
-    'INTEGRACAO_EXTERNA_HABILITADA':True,
+    'INTEGRACAO_EXTERNA_HABILITADA':False,
     
     'EXECUCAO_DIARIA': True, #True ou False
     'PROCESSA_POR_PERIODO': None, #[(1, 11, 2019), (30, 11, 2019)] // se [] irá processar os ultimos 6 meses até o dia atual 

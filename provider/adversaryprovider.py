@@ -64,7 +64,7 @@ class AdversaryProvider():
             return self.session.query(Adversary)\
                     .filter(Adversary.name == 'Draw')\
                         .filter(Adversary.idCompetition == idCompetition)\
-                        .all()
+                        .first()
         finally:
             if(self.session is not None):     
                 self.session.close()     

@@ -7,6 +7,7 @@ import re
 import ssl
 import sys
 import time
+import _thread
 import unicodedata
 import datetime as dtime
 from datetime import datetime, date
@@ -411,13 +412,13 @@ class CrawlerBet365Virtual(CrawlerSelenium):
                         matchResult = matchData.matchResult
                         halfTimeResult = matchData.halfTimeResult
                         idAdversary1 = matchData.idAdversary1
+                        idAdversary2 = matchData.idAdversary2
                         idAdversaryScoreFirst = matchData.idAdversaryScoreFirst
                         matchMarketsRaw = matchrawData.matchMarkets
                         matchdataProv.atualizar(matchData)
-                        matchdatarawProv.atualizar(matchrawData)                       
-                        self.calculaMaximas(matchMarketsRaw, idCompetition, 
-                                            matchResult, halfTimeResult,
-                                            idAdversary1, idAdversaryScoreFirst)
+                        matchdatarawProv.atualizar(matchrawData)   
+                        _thread.start_new_thread(self.calculaMaximas,(matchMarketsRaw, idCompetition, matchResult, halfTimeResult,idAdversary1, idAdversary2, idAdversaryScoreFirst))
+
                     self.logger.info('-------------------------------------------')
                     self.sleep()
                 self.sleep(cfgEspecifico.configParams['INTERVALO_TEMPO_COMPETICOES'])
@@ -549,7 +550,7 @@ class CrawlerBet365Virtual(CrawlerSelenium):
 
     def calculaMaximas(self, jsonRawText, idCompetition, 
                         matchResultFinal, matchResultIntervalo,
-                        idAdversary1, idAdversaryScoreFirst):
+                        idAdversary1, idAdversary2, idAdversaryScoreFirst):
         try:
             self.logger.info('Processando as maximas...')
             listaMaxTime = []
@@ -571,7 +572,6 @@ class CrawlerBet365Virtual(CrawlerSelenium):
             listaMaxTime.append({'label':'visitante FT', 'saiu': golCasaFT < golVisitanteFT})
 
             #CALCULO MERCADO HOME MARCA E AWAY MARCA
-            listaMaxTime = []
             golCasa = int(matchResultFinal.split('-')[0])
             golVisitante = int(matchResultFinal.split('-')[1])
             timeCasaMarca = golCasa > 0
@@ -580,10 +580,33 @@ class CrawlerBet365Virtual(CrawlerSelenium):
             listaMaxTime.append({'label':'casa marca nao', 'saiu': not timeCasaMarca})
             listaMaxTime.append({'label':'visitante marca sim', 'saiu': timeVisitanteMarca})
             listaMaxTime.append({'label':'visitante marca nao', 'saiu': not timeVisitanteMarca})
+            
+            #RESULTADO_FT
+            typeMarkProvider = TypeMarketProvider()
+            listaTypesResultado = typeMarkProvider.retornaTodosPorMercado(3)
+            for typeMarket in listaTypesResultado:
+                if(matchResultFinal in typeMarket.label):
+                    listaMaxTime.append({'label':typeMarket.label, 'saiu': True})
+                else:
+                    listaMaxTime.append({'label':typeMarket.label, 'saiu': False})
+               
+            #RESULTADO_HT
+            respEspecifico = False
+            typeMarkProvider = TypeMarketProvider()
+            listaTypesResultado = typeMarkProvider.retornaTodosPorMercado(5)
+            for typeMarket in listaTypesResultado:
+                if(typeMarket.idTypeMarket == 37):
+                    continue
+                if(matchResultIntervalo in typeMarket.label):
+                    listaMaxTime.append({'label':typeMarket.label, 'saiu': True})
+                    respEspecifico = True
+                else:
+                    listaMaxTime.append({'label':typeMarket.label, 'saiu': False})
+            listaMaxTime.append({'label':'outro HT', 'saiu': not respEspecifico})
 
             for itemMaximaBase in listaMaxTime:                
                 self.registraMaxima(idCompetition, itemMaximaBase, itemMaximaBase["label"])
-            
+                        
             #OUTROS MERCADOS
             matchMarkets = ast.literal_eval(jsonRawText)
             for dado in matchMarkets:
@@ -607,16 +630,6 @@ class CrawlerBet365Virtual(CrawlerSelenium):
                     elif('númerodegols' in labelBase):
                         valor = dataExt.extrairGolsExatos(itemMaximaBase['label'].lower())
                         textoBuscaMarket = f'gol {valor}'
-                    elif('resultadocorreto' in labelBase or 'intervalo-resultadocorreto' in labelBase):
-                        apostaWon = dataExt.extrairApostaVencedora(itemMaximaBase['label'].lower())
-                        apostaWon = itemMaximaBase['label'].lower() if apostaWon == 'N/A' else apostaWon
-                        if('any other' in apostaWon):
-                            matchResult = 'outro'
-                        else:
-                            matchResult = dataExt.extrairResultadoPartida(apostaWon)
-
-                        tipo = 'HT' if('intervalo' in labelBase) else 'FT'
-                        textoBuscaMarket = f'{matchResult} {tipo}'
                     elif('paraambosostimesmarcarem' in labelBase and 'resultado' not in labelBase):
                         tipo = 'sim' if 'yes' in itemMaximaBase['label'].lower() else 'nao'
                         textoBuscaMarket = f'ambas {tipo}'       
@@ -650,7 +663,7 @@ class CrawlerBet365Virtual(CrawlerSelenium):
                 self.logger.info('Maxima rompida.')
                 #ATUALIZA O CAMPO BROKEN DA ULTIMA DO BANCO E INSERE UMA NOVA COM lastSequenceCount = 0
                 maximaEncontrada.broken = True
-                maximaEncontrada.date = datetime.now()
+                maximaEncontrada.date = datetime.utcnow()
                 maximaProv.atualizar(maximaEncontrada) 
                 self.logger.info('Maxima atualizada para broken=True.') 
                 maximaProv.inserir(self.gerarEntidadeMaxima(idCompetition, typeMarket.idTypeMarket, False))  
@@ -659,7 +672,7 @@ class CrawlerBet365Virtual(CrawlerSelenium):
             else:
                 self.logger.info('Maxima nao foi rompida.')
                 #APENAS ATUALIZA O lastSequenceCount DA ULTIMA DO BANCO
-                maximaEncontrada.date = datetime.now() 
+                maximaEncontrada.date = datetime.utcnow()
                 maximaEncontrada.idCompetition = idCompetition
                 maximaEncontrada.lastSequenceCount = maximaEncontrada.lastSequenceCount + 1
                 maximaProv.atualizar(maximaEncontrada) 
@@ -668,7 +681,7 @@ class CrawlerBet365Virtual(CrawlerSelenium):
         else:
             self.logger.info('Maxima nao encontrada.')
             maxima = Maxima()
-            maxima.date = datetime.now()
+            maxima.date = datetime.utcnow()
             maxima.idCompetition = idCompetition
             maxima.idTypeMarket = typeMarket.idTypeMarket
             maximaProv.inserir(maxima)
@@ -682,7 +695,7 @@ class CrawlerBet365Virtual(CrawlerSelenium):
         if(lastSequence is not None):
             maxima.lastSequenceCount = lastSequence
         maxima.idTypeMarket = idType
-        maxima.date = datetime.now()
+        maxima.date = datetime.utcnow()
         maxima.idCompetition = idCompetition
         return maxima
 

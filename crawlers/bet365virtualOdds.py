@@ -6,6 +6,7 @@ import re
 import ssl
 import sys
 import time
+import _thread
 import unicodedata
 import datetime as dtime
 from datetime import datetime, date
@@ -66,6 +67,7 @@ class CrawlerBet365VirtualOdds(CrawlerBet365Virtual):
             self.browserSession = None
             self.listaMemoriaCompeticoes = []
             self.listaMemoriaMarkets = []
+            self.listaMemoriaPartidas = []
             adsProv = AdversaryProvider()
             self.listaAdversarys = adsProv.retornaTodos()
             
@@ -79,8 +81,6 @@ class CrawlerBet365VirtualOdds(CrawlerBet365Virtual):
             self.logger = logging.getLogger()
             logaugment.set(self.logger, custom_key='N/A')
 
-            # dbConKey = 'PROD' if 'localhost' not in cfgPadrao.database['mysql_conn'] else 'DESE'
-            # self.logger.info(f'@@@ BANCO DE DADOS: {dbConKey}')
             try:                
                 self.startChrome()                
                 self.GetRequest(cfgEspecifico.urls['SITE_DOMAIN'])
@@ -163,129 +163,145 @@ class CrawlerBet365VirtualOdds(CrawlerBet365Virtual):
 
             #LISTA HORARIOS 6 PARTIDAS 
             self.logger.info('Buscando links das proximas partidas...')  
-
-            #CAPTURA ODDS PELO HORARIO
-            for index in range(1, 7):                
-                linkPartida = self.GetElementObject(cfgEspecifico.html_xpaths['LNK_LISTA_PARTIDAS'].format(index))
-                horario = self.getTextoElemento(linkPartida)
-                if(linkPartida.is_enabled() and linkPartida.is_displayed()):
-                    linkPartida.click()
-
-                objRaceInfo = self.GetElementObject(cfgEspecifico.html_xpaths['DIV_RACE_INFO'])                
-                objPartidaAtiva = self.GetChildElementObject(objRaceInfo, cfgEspecifico.html_xpaths['TXT_NOME_PARTIDA_ATIVA'])
-                titulo = self.getTextoElemento(objPartidaAtiva)
-                self.logger.info(f'Verificando odds da partida: Horario:{horario} -- Nome: {titulo}')
-
-                objEventoIniciado = self.GetChildElementObject(objRaceInfo, cfgEspecifico.html_xpaths['TXT_EVENTO_INICIADO'])
-                if(objEventoIniciado):
-                    self.logger.info('Este evento foi iniciado, odds não disponiveis.')
-                    continue
-                
-                matchDataProv = MatchDataProvider()
-                matchOddsProv = MatchOddsProvider()
-                datetimeOdd = self.montaDataOdd(horario)
-                
-                if(datetimeOdd is None):
-                    continue
-                
-                firstTimeSave = False
-                self.logger.info('Buscando dados de partidas no banco...')
-                matchData = matchDataProv.retornaPorData(idCompetition, datetimeOdd)
-                if(matchData is None): 
-                    self.logger.info(f'Objeto MatchData não existe no banco DateTime:{datetimeOdd} - idCompetition:{idCompetition}!!!')
-                    matchDataNew = MatchData()  
-                    matchDataNew.title = titulo
-                    matchDataNew.date  = datetimeOdd
-                    matchDataNew.idCompetition = idCompetition
-                    matchDataNew.idWinner = None
-                    adversary1, adversary2 = dataExt.extrairAdversarios(titulo)
-                    matchDataNew.idAdversary1 = self.retornaDadosAdversarioPorNome(adversary1, idCompetition)
-                    matchDataNew.idAdversary2 = self.retornaDadosAdversarioPorNome(adversary2, idCompetition)
-                    idMatchData = matchDataProv.atualizar(matchDataNew)
-                    firstTimeSave = True
-                else:
-                    self.logger.info(f'Objeto MatchData já existe no banco idMatchData:{matchData.idMatchData} - idCompetition:{idCompetition}!!!')
-                    idMatchData = matchData.idMatchData
-                
-                listaOddsGeradas = self.retornaListaOdds(idMatchData, datetimeOdd)
-                if(firstTimeSave):
-                    self.logger.info('Salvando as odds em lote...')
-                    matchOddsProv.inserirBulk(listaOddsGeradas)
-                else:
-                    for odds in listaOddsGeradas:
-                        self.logger.info(f'IdMatchData:{odds.idMatchData} -- IdMarket: {odds.idMarket} --> Name:{odds.name} - Value:{odds.value}')
-                        matchOddsProv.atualizar(odds)                                                          
-                time.sleep(1)
+            for i in range(1, 7):
+                self.processaIndexLinkAba(i, idCompetition)
 
             self.logger.info('***********************************')
+    
+    def processaIndexLinkAba(self, index, idCompetition):
+        linkPartida = self.GetElementObject(cfgEspecifico.html_xpaths['LNK_LISTA_PARTIDAS'].format(index))
+        horario = self.getTextoElemento(linkPartida)
+        if(linkPartida.is_enabled() and linkPartida.is_displayed()):
+            linkPartida.click()
 
+        objRaceInfo = self.GetElementObject(cfgEspecifico.html_xpaths['DIV_RACE_INFO'])                
+        objPartidaAtiva = self.GetChildElementObject(objRaceInfo, cfgEspecifico.html_xpaths['TXT_NOME_PARTIDA_ATIVA'])
+        titulo = self.getTextoElemento(objPartidaAtiva)
+        if(titulo.strip() in self.listaMemoriaPartidas):
+            self.logger.info(f'A partida {titulo} já foi capturada e será ignorada.')
+            return
+
+        self.logger.info(f'Verificando odds da partida: Horario:{horario} -- Nome: {titulo}')
+        self.listaMemoriaPartidas.append(titulo.strip())
+
+        objEventoIniciado = self.GetChildElementObject(objRaceInfo, cfgEspecifico.html_xpaths['TXT_EVENTO_INICIADO'])
+        if(objEventoIniciado):
+            self.logger.info('Este evento foi iniciado, odds não disponiveis.')
+            return
+        
+        matchDataProv = MatchDataProvider()
+        matchOddsProv = MatchOddsProvider()
+        datetimeOdd = self.montaDataOdd(horario)
+        
+        if(datetimeOdd is None):
+            return
+        
+        firstTimeSave = False
+        self.logger.info('Buscando dados de partidas no banco...')
+        matchData = matchDataProv.retornaPorData(idCompetition, datetimeOdd)
+        if(matchData is None): 
+            self.logger.info(f'Objeto MatchData não existe no banco DateTime:{datetimeOdd} - idCompetition:{idCompetition}!!!')
+            matchDataNew = MatchData()  
+            matchDataNew.title = titulo
+            matchDataNew.date  = datetimeOdd
+            matchDataNew.idCompetition = idCompetition
+            matchDataNew.idWinner = None
+            adversary1, adversary2 = dataExt.extrairAdversarios(titulo)
+            matchDataNew.idAdversary1 = self.retornaDadosAdversarioPorNome(adversary1, idCompetition)
+            matchDataNew.idAdversary2 = self.retornaDadosAdversarioPorNome(adversary2, idCompetition)
+            idMatchData = matchDataProv.atualizar(matchDataNew)
+            firstTimeSave = True
+        else:
+            self.logger.info(f'Objeto MatchData já existe no banco idMatchData:{matchData.idMatchData} - idCompetition:{idCompetition}!!!')
+            idMatchData = matchData.idMatchData 
+
+        listaOddsGeradas = self.retornaListaOdds(idMatchData, datetimeOdd)
+        if(firstTimeSave):
+            self.logger.info('Salvando as odds em lote...')
+            matchOddsProv.inserirBulk(listaOddsGeradas)
+        else:
+            for odds in listaOddsGeradas:
+                self.logger.info(f'IdMatchData:{odds.idMatchData} -- IdMarket: {odds.idMarket} --> Name:{odds.name} - Value:{odds.value}')
+                matchOddsProv.atualizar(odds)                                                          
+        time.sleep(1)
+ 
     def retornaListaOdds(self, idMatchData, datetimeOdd):
-        result = []
+        result = []                 
         listaGruposOdds = self.GetAllElementObject(cfgEspecifico.html_xpaths['LST_GRUPO_ODDS'])
-        for grupoOdds in listaGruposOdds:
-            objGrupoNome = self.GetChildElementObject(grupoOdds, cfgEspecifico.html_xpaths['GRUPO_NOME'])
-            nomeGrupoRaw = self.getTextoElemento(objGrupoNome)
-            hashGrupo = nomeGrupoRaw.lower().replace(' ','')
-            if(hashGrupo in ['paraotimedacasamarcar', 'paraotimevisitantemarcar']): #['vencedordojogo', 'númerodegols', 'timeamarcarprimeiro','paraambosostimesmarcarem']):                    
-                self.logger.info('')
-                self.logger.info('-------------------------------------')
-                self.logger.info(f'-->> Nome grupo: {nomeGrupoRaw}')
-                objContainerCelulas = self.GetAllChildElementObject(grupoOdds, cfgEspecifico.html_xpaths['CONTAINER_CELULA'])
+        for item in listaGruposOdds:
+            try:    
+                result += self.processaGrupo(item, idMatchData)   
+            except Exception as ex:
+                self.logger.error('Falha ao processar grupo. Ex:' + str(ex))
+        return result
 
-                for celula in objContainerCelulas:
-                    celulaNome = self.GetChildElementObject(celula, cfgEspecifico.html_xpaths['CELULA_TITLE'])
-                    celulaValor = self.GetChildElementObject(celula, cfgEspecifico.html_xpaths['CELULA_VALUE'])
-                    nome = self.getTextoElemento(celulaNome)
-                    valor = self.getTextoElemento(celulaValor)
-                    if(nome.strip() == '' or valor.strip() == ''):
+    def processaGrupo(self, grupoOdds, idMatchData):
+        result = []
+        #for grupoOdds in listaGruposOdds:
+        objGrupoNome = self.GetChildElementObject(grupoOdds, cfgEspecifico.html_xpaths['GRUPO_NOME'])
+        nomeGrupoRaw = self.getTextoElemento(objGrupoNome)
+        hashGrupo = nomeGrupoRaw.lower().replace(' ','')
+        if(hashGrupo in ['paraotimedacasamarcar', 'paraotimevisitantemarcar',
+        'vencedordojogo', 'númerodegols', 'timeamarcarprimeiro','paraambosostimesmarcarem']):                    
+            self.logger.info('')
+            self.logger.info('-------------------------------------')
+            self.logger.info(f'-->> Nome grupo: {nomeGrupoRaw}')
+            objContainerCelulas = self.GetAllChildElementObject(grupoOdds, cfgEspecifico.html_xpaths['CONTAINER_CELULA'])
+
+            for celula in objContainerCelulas:
+                celulaNome = self.GetChildElementObject(celula, cfgEspecifico.html_xpaths['CELULA_TITLE'])
+                celulaValor = self.GetChildElementObject(celula, cfgEspecifico.html_xpaths['CELULA_VALUE'])
+                nome = self.getTextoElemento(celulaNome)
+                valor = self.getTextoElemento(celulaValor)
+                if(nome.strip() == '' or valor.strip() == ''):
+                    self.logger.warning('Campo nome/valor da celula está vazio. Indo para próxima celula...')
+                    continue
+                
+                self.logger.info(f'Titulo: {nome} -- Valor: {valor}')
+                odds = MatchOdds()                            
+                odds.name = nome
+                odds.value = valor                            
+                odds.idMatchData = idMatchData
+                odds.idMarket = self.buscaCompeticaoMarket(nomeGrupoRaw)
+                if(odds.idMarket is not None):
+                        result.append(odds)
+        elif(hashGrupo in ['resultadocorreto', 'intervalo-resultadocorreto', 'totaldegols']): 
+            self.logger.info('')
+            self.logger.info('-------------------------------------')
+            self.logger.info(f'Nome grupo: {nomeGrupoRaw}')              
+            objGrupoListaColunas = self.GetAllChildElementObject(grupoOdds, cfgEspecifico.html_xpaths['LST_GRUPO_COLUMNS'])  
+            for colunaGrupo in objGrupoListaColunas:   
+                objGrupoHeader = self.GetChildElementObject(colunaGrupo, cfgEspecifico.html_xpaths['COLUMN_HEADER'])  
+                headerColuna = self.getTextoElemento(objGrupoHeader)
+                if(headerColuna == '' or headerColuna is None):
+                    continue
+
+                self.logger.info(f'Header da coluna - {headerColuna}') 
+                objListaContainerColuna = self.GetAllChildElementObject(colunaGrupo, cfgEspecifico.html_xpaths['CONTAINER_CELULA'])
+                for index, celula in enumerate(objListaContainerColuna): 
+                    objCelulaSpan1 = self.GetChildElementObject(celula, cfgEspecifico.html_xpaths['CELULA_TITLE'])
+                    objCelulaSpan2 = self.GetChildElementObject(celula, cfgEspecifico.html_xpaths['CELULA_VALUE'])   
+                    nameCell = None
+                    valueCell = None 
+                    if(hashGrupo == 'totaldegols'):
+                        nameCell = str(index + 0.5)
+                        valueCell = self.getTextoElemento(objCelulaSpan1)
+                    else:
+                        nameCell = self.getTextoElemento(objCelulaSpan1)
+                        valueCell = self.getTextoElemento(objCelulaSpan2)
+
+                    if(nameCell.strip() == '' or valueCell.strip() == ''):
                         self.logger.warning('Campo nome/valor da celula está vazio. Indo para próxima celula...')
                         continue
-                    
-                    self.logger.info(f'Titulo: {nome} -- Valor: {valor} -- DatetimeOdd:{datetimeOdd}')
+                    self.logger.info(f'Titulo: {nameCell} -- Valor: {valueCell}')
                     odds = MatchOdds()                            
-                    odds.name = nome
-                    odds.value = valor                            
+                    odds.name = nameCell
+                    odds.value = valueCell         
+                    odds.columnHeader = headerColuna                    
                     odds.idMatchData = idMatchData
                     odds.idMarket = self.buscaCompeticaoMarket(nomeGrupoRaw)
                     if(odds.idMarket is not None):
-                            result.append(odds)
-            elif(hashGrupo in ['resultadocorreto', 'intervalo-resultadocorreto', 'totaldegols']): 
-                self.logger.info('')
-                self.logger.info('-------------------------------------')
-                self.logger.info(f'Nome grupo: {nomeGrupoRaw}')              
-                objGrupoListaColunas = self.GetAllChildElementObject(grupoOdds, cfgEspecifico.html_xpaths['LST_GRUPO_COLUMNS'])  
-                for colunaGrupo in objGrupoListaColunas:   
-                    objGrupoHeader = self.GetChildElementObject(colunaGrupo, cfgEspecifico.html_xpaths['COLUMN_HEADER'])  
-                    headerColuna = self.getTextoElemento(objGrupoHeader)
-                    if(headerColuna == '' or headerColuna is None):
-                        continue
-
-                    self.logger.info(f'Header da coluna - {headerColuna}') 
-                    objListaContainerColuna = self.GetAllChildElementObject(colunaGrupo, cfgEspecifico.html_xpaths['CONTAINER_CELULA'])
-                    for index, celula in enumerate(objListaContainerColuna): 
-                        objCelulaSpan1 = self.GetChildElementObject(celula, cfgEspecifico.html_xpaths['CELULA_TITLE'])
-                        objCelulaSpan2 = self.GetChildElementObject(celula, cfgEspecifico.html_xpaths['CELULA_VALUE'])   
-                        nameCell = None
-                        valueCell = None 
-                        if(hashGrupo == 'totaldegols'):
-                            nameCell = str(index + 0.5)
-                            valueCell = self.getTextoElemento(objCelulaSpan1)
-                        else:
-                            nameCell = self.getTextoElemento(objCelulaSpan1)
-                            valueCell = self.getTextoElemento(objCelulaSpan2)
-
-                        if(nameCell.strip() == '' or valueCell.strip() == ''):
-                            self.logger.warning('Campo nome/valor da celula está vazio. Indo para próxima celula...')
-                            continue
-                        self.logger.info(f'Titulo: {nameCell} -- Valor: {valueCell} -- DatetimeOdd:{datetimeOdd}')
-                        odds = MatchOdds()                            
-                        odds.name = nameCell
-                        odds.value = valueCell         
-                        odds.columnHeader = headerColuna                    
-                        odds.idMatchData = idMatchData
-                        odds.idMarket = self.buscaCompeticaoMarket(nomeGrupoRaw)
-                        if(odds.idMarket is not None):
-                            result.append(odds)
+                        result.append(odds)
 
         return result
 
